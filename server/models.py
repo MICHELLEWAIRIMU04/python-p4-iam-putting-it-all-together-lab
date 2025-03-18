@@ -1,7 +1,6 @@
-from sqlalchemy.orm import validates, relationship
+from sqlalchemy.orm import validates
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy_serializer import SerializerMixin
-
 from config import db, bcrypt
 
 class User(db.Model, SerializerMixin):
@@ -30,8 +29,8 @@ class User(db.Model, SerializerMixin):
 
     @validates('username')
     def validate_username(self, key, username):
-        if not username:
-            raise ValueError('Username is required.')
+        if not username or len(username) < 3:
+            raise ValueError('Username must be at least 3 characters long.')
         return username
 
 class Recipe(db.Model, SerializerMixin):
@@ -47,10 +46,12 @@ class Recipe(db.Model, SerializerMixin):
     
     serialize_rules = ('-user.recipes',)
     
-    @validates('title', 'instructions')
+    @validates('title', 'instructions', 'minutes_to_complete')
     def validate_fields(self, key, value):
         if not value:
             raise ValueError(f'{key} is required.')
         if key == 'instructions' and len(value) < 50:
             raise ValueError('Instructions must be at least 50 characters long.')
+        if key == 'minutes_to_complete' and (not isinstance(value, int) or value <= 0):
+            raise ValueError('Minutes to complete must be a positive number.')
         return value
